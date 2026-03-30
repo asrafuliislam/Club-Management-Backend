@@ -18,11 +18,14 @@ const app = express()
 // middleware
 app.use(
   cors({
-    origin: "https://club-management-vvu1.vercel.app",
+    origin: "https://club-management-o1cz.vercel.app",
     credentials: true,
     optionSuccessStatus: 200,
   })
 )
+
+
+
 
 app.use(express.json())
 
