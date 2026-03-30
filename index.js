@@ -700,7 +700,7 @@ async function run() {
     // manager statistics 
     app.get('/manager-stats/:email', verifyJWT, verifyManager, async (req, res) => {
 
-      const email = req.params.email
+      const email = req.tokenEmail
 
       // my clubs
       const myClubs = await clubsCollection.find({
