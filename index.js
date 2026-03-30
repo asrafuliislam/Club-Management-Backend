@@ -5,7 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb')
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 const admin = require('firebase-admin')
 
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 5000
 const decoded = Buffer.from(process.env.FB_SERVICE_KEY, 'base64').toString(
   'utf-8'
 )
@@ -20,6 +20,7 @@ app.use(
   cors({
     origin: [
       'http://localhost:5173',
+      "https://club-management-o1cz.vercel.app",
       process.env.CLIENT_DOMAIN,
     ],
     credentials: true,
@@ -638,7 +639,7 @@ async function run() {
 
 
     // ======================================
-    app.get('/admin/clubs', verifyJWT, verifyADMIN, async (req, res) => {
+    app.get('/admin/clubs', verifyJWT, async (req, res) => {
       const clubs = await clubsCollection.find().toArray()
       res.send(clubs)
     })
@@ -724,7 +725,7 @@ async function run() {
 
       // registrations
       const totalRegistrations = await paymentsCollection.countDocuments({
-        type: "event",
+        type: "registerPayment",
         eventId: { $in: eventIds }
       })
 
@@ -763,7 +764,7 @@ async function run() {
 
       const registeredEvents = await paymentsCollection.countDocuments({
         memberEmail: email,
-        type: "event"
+        type: "registerPayment"
       })
 
       res.send({
