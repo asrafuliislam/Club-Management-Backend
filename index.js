@@ -18,11 +18,7 @@ const app = express()
 // middleware
 app.use(
   cors({
-    origin: [
-      'http://localhost:5173',
-      "https://club-management-o1cz.vercel.app",
-      process.env.CLIENT_DOMAIN,
-    ],
+    origin: "https://club-management-vvu1.vercel.app",
     credentials: true,
     optionSuccessStatus: 200,
   })
