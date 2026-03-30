@@ -20,6 +20,7 @@ app.use(
   cors({
     origin: [
       'http://localhost:5173',
+      process.env.CLIENT_DOMAIN,
     ],
     credentials: true,
     optionSuccessStatus: 200,
@@ -346,7 +347,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/club-events', async (req, res) => {
+    app.get('/club-events', verifyJWT, async (req, res) => {
       const { clubId } = req.query
 
       const query = clubId ? { clubId } : {}
@@ -356,7 +357,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/club-members/:clubId', async (req, res) => {
+    app.get('/club-members/:clubId', verifyJWT, async (req, res) => {
       try {
         const { clubId } = req.params
 
@@ -397,7 +398,7 @@ async function run() {
 
 
     app.get('/manager-events/:email', verifyJWT, verifyManager, async (req, res) => {
-      const email = req.params.email
+      const email = req.tokenEmail
       const query = {
         'manager.email': email
       }
@@ -409,7 +410,7 @@ async function run() {
     })
 
     app.get('/manager-event-registrations/:email', verifyJWT, verifyManager, async (req, res) => {
-      const email = req.params.email
+      const email = req.tokenEmail
       const events = await eventsCollection
         .find({ "manager.email": email })
         .toArray()
@@ -426,7 +427,7 @@ async function run() {
 
     // member dashboard api 
     app.get("/member-clubs/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email
+      const email = req.tokenEmail
       const clubs = await membersCollection
         .find({ memberEmail: email })
         .toArray()
