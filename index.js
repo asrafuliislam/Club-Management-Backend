@@ -55,7 +55,7 @@ const client = new MongoClient(process.env.MONGODB_URI, {
 async function run() {
   try {
 
- 
+
     const db = client.db('ClubManageDB')
     const usersCollection = db.collection('users')
     const clubsCollection = db.collection('clubs')
@@ -623,7 +623,7 @@ async function run() {
 
     // get members 
     app.get('/manager-members/:email', verifyJWT, verifyManager, async (req, res) => {
-      const email = req.params.email
+      const email = req.tokenEmail
       const managerClubs = await clubsCollection
         .find({ "manager.email": email })
         .toArray()
@@ -747,7 +747,7 @@ async function run() {
     // Member statistics
     app.get('/member-stats/:email', verifyJWT, async (req, res) => {
 
-      const email = req.params.email
+      const email = req.tokenEmail
 
       const joinedClubs = await membersCollection.countDocuments({
         memberEmail: email
