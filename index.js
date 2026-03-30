@@ -643,7 +643,31 @@ async function run() {
     })
 
 
-   
+    // ============================= Status =============
+    // club status update -> approve
+    app.patch('/admin/clubs/approve/:id', verifyJWT, verifyADMIN, async (req, res) => {
+      const id = req.params.id
+
+      const result = await clubsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: { status: "approved" }
+        }
+      )
+      res.send(result)
+    })
+
+    // club status update ->reject
+    app.patch('/admin/clubs/reject/:id', verifyJWT, verifyADMIN, async (req, res) => {
+      const id = req.params.id
+      const result = await clubsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: { status: "rejected" }
+        }
+      )
+      res.send(result)
+    })
 
 
 
