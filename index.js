@@ -438,7 +438,7 @@ async function run() {
     })
 
     app.get("/member-events/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email
+      const email = req.tokenEmail
       const type = req.query.type
 
       const memberClubs = await membersCollection
@@ -464,7 +464,7 @@ async function run() {
     })
 
     app.get("/member-payments/:email", verifyJWT, async (req, res) => {
-      const email = req.params.email
+      const email = req.tokenEmail
       const payments = await paymentsCollection
         .find({ memberEmail: email, type: "registerPayment" })
         .sort({ createdAt: -1 })
@@ -612,7 +612,7 @@ async function run() {
     // ==================== Manager Api ==============================
     // get manager clubs
     app.get('/manager-clubs/:email', verifyJWT, verifyManager, async (req, res) => {
-      const email = req.params.email
+      const email = req.tokenEmail
 
       const result = await clubsCollection.find({
         "manager.email": email // 🔥 important
