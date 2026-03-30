@@ -31,16 +31,13 @@ app.use(express.json())
 // jwt middlewares
 const verifyJWT = async (req, res, next) => {
   const token = req?.headers?.authorization?.split(' ')[1]
-  console.log(token)
   if (!token) return res.status(401).send({ message: 'Unauthorized Access!' })
   try {
     const decoded = await admin.auth().verifyIdToken(token)
     req.tokenEmail = decoded.email
     req.user = decoded
-    console.log(decoded)
     next()
   } catch (err) {
-    console.log(err)
     return res.status(401).send({ message: 'Unauthorized Access!', err })
   }
 }
@@ -53,10 +50,12 @@ const client = new MongoClient(process.env.MONGODB_URI, {
     deprecationErrors: true,
   },
 })
+
+
 async function run() {
   try {
 
-
+ 
     const db = client.db('ClubManageDB')
     const usersCollection = db.collection('users')
     const clubsCollection = db.collection('clubs')
@@ -90,14 +89,10 @@ async function run() {
     }
 
 
-    // =================================
-
     // Create Club Payment Session
     app.post('/create-club-checkout-session', async (req, res) => {
       try {
         const paymentInfo = req.body
-        console.log('Payment Info:', paymentInfo)
-
         const session = await stripe.checkout.sessions.create({
           line_items: [
             {
@@ -132,10 +127,6 @@ async function run() {
       }
     })
 
-
-    // Payment Success -> save payment + add member
-
-
     // event registration payment 
     app.post('/create-event-checkout-session', async (req, res) => {
       const paymentInfo = req.body
@@ -168,14 +159,10 @@ async function run() {
         success_url: `${process.env.CLIENT_DOMAIN}/event-payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.CLIENT_DOMAIN}/events/${paymentInfo.eventId}`
       })
-      console.log(session)
       res.send({ url: session.url })
 
 
     })
-
-
-
 
     // ====================== CLUB PAYMENT ======================
 
@@ -323,11 +310,7 @@ async function run() {
       }
     })
 
-
-
-
-
-    app.get('/payments', async (req, res) => {
+    app.get('/payments', verifyJWT, async (req, res) => {
       const type = req.query.type
       const query = { type }
       const result = await paymentsCollection
@@ -339,10 +322,9 @@ async function run() {
     })
 
 
-
     // ========================
     // event  api  get event for manager
-    app.get('/events/manager', async (req, res) => {
+    app.get('/events/manager', verifyJWT, async (req, res) => {
 
       const email = req.tokenEmail
 
@@ -359,15 +341,39 @@ async function run() {
     })
 
     // get event 
-    app.get('/events', async (req, res) => {
+    app.get('/events', verifyJWT, async (req, res) => {
       const result = await eventsCollection.find().toArray()
       res.send(result)
+    })
+
+    app.get('/club-events', async (req, res) => {
+      const { clubId } = req.query
+
+      const query = clubId ? { clubId } : {}
+
+      const result = await eventsCollection.find(query).toArray()
+
+      res.send(result)
+    })
+
+    app.get('/club-members/:clubId', async (req, res) => {
+      try {
+        const { clubId } = req.params
+
+        const members = await membersCollection
+          .find({ clubId })
+          .toArray()
+
+        res.send(members)
+      } catch (error) {
+        res.status(500).send({ message: 'Failed to get members' })
+      }
     })
 
 
     // POST /events
     // Manager শুধুমাত্র নিজের club এর জন্য event create করতে পারবে
-    app.post('/events', async (req, res) => {
+    app.post('/events', verifyJWT, async (req, res) => {
       const eventData = req.body
 
       const club = await clubsCollection.findOne({ _id: new ObjectId(eventData.clubId) })
@@ -381,7 +387,7 @@ async function run() {
 
     })
 
-    app.get('/events/:id', async (req, res) => {
+    app.get('/events/:id', verifyJWT, async (req, res) => {
       const eventId = req.params.id
       const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) })
       if (!event) return res.status(404).send({ message: 'Event not found' })
@@ -390,7 +396,7 @@ async function run() {
     })
 
 
-    app.get('/manager-events/:email', async (req, res) => {
+    app.get('/manager-events/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.params.email
       const query = {
         'manager.email': email
@@ -402,7 +408,7 @@ async function run() {
       res.send(events)
     })
 
-    app.get('/manager-event-registrations/:email', async (req, res) => {
+    app.get('/manager-event-registrations/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.params.email
       const events = await eventsCollection
         .find({ "manager.email": email })
@@ -418,11 +424,8 @@ async function run() {
     })
 
 
-    // ===================================================
-
     // member dashboard api 
-
-    app.get("/member-clubs/:email", async (req, res) => {
+    app.get("/member-clubs/:email", verifyJWT, async (req, res) => {
       const email = req.params.email
       const clubs = await membersCollection
         .find({ memberEmail: email })
@@ -434,22 +437,7 @@ async function run() {
       res.send(clubDetails)
     })
 
-
-    // app.get("/member-events/:email", async (req, res) => {
-    //   const email = req.params.email
-    //   const memberClubs = await membersCollection
-    //     .find({ memberEmail: email })
-    //     .toArray()
-    //   const clubIds = memberClubs.map(c => c.clubId)
-    //   const events = await eventsCollection
-    //     .find({ clubId: { $in: clubIds } })
-    //     .sort({ eventDate: 1 })
-    //     .toArray()
-
-    //   res.send(events)
-    // })
-
-    app.get("/member-events/:email", async (req, res) => {
+    app.get("/member-events/:email", verifyJWT, async (req, res) => {
       const email = req.params.email
       const type = req.query.type
 
@@ -475,8 +463,7 @@ async function run() {
       res.send(events)
     })
 
-
-    app.get("/member-payments/:email", async (req, res) => {
+    app.get("/member-payments/:email", verifyJWT, async (req, res) => {
       const email = req.params.email
       const payments = await paymentsCollection
         .find({ memberEmail: email, type: "registerPayment" })
@@ -487,10 +474,6 @@ async function run() {
 
 
 
-
-
-    // =============================
-
     // save or  update user data
     app.post('/users', async (req, res) => {
       const userdata = req.body
@@ -498,17 +481,12 @@ async function run() {
       userdata.created_At = new Date().toISOString()
       userdata.last_Login = new Date().toISOString()
       userdata.role = "member"
-
       const query = {
         email: userdata.email
       }
 
       const AlreadyExit = await usersCollection.findOne(query)
-      console.log('user already exits--->', !!AlreadyExit)
-
       if (AlreadyExit) {
-
-        console.log('updating User ===>>')
 
         const result = await usersCollection.updateOne(query, {
           $set: {
@@ -517,13 +495,9 @@ async function run() {
         })
         return res.send(result)
       }
-
-      console.log('new user ')
       const result = await usersCollection.insertOne(userdata)
-
       res.send(result)
     })
-
 
     // user role get
     app.get('/user/role', verifyJWT, async (req, res) => {
@@ -550,7 +524,6 @@ async function run() {
       res.send(result)
     })
 
-
     // get all request for manager
     // admin routes
     app.get('/manager-requests', verifyJWT, verifyADMIN, async (req, res) => {
@@ -562,8 +535,6 @@ async function run() {
       const result = await adminsCollection.find().toArray()
       res.send(result)
     })
-
-
 
     // get all users for admin 
     // admin routes
@@ -580,14 +551,39 @@ async function run() {
 
     // update user role 
     app.patch('/update-role', verifyJWT, verifyADMIN, async (req, res) => {
-      const { email, role } = req.body
-      const result = await usersCollection.updateOne({ email }, {
-        $set: { role }
-      })
-      await managersCollection.deleteOne({ email })
-      res.send(result)
-    })
+      try {
+        const { email, role } = req.body
 
+        // Role update in usersCollection
+        const result = await usersCollection.updateOne(
+          { email },
+          { $set: { role } }
+        )
+
+        if (role === 'manager') {
+          const exists = await managersCollection.findOne({ email })
+          if (!exists) {
+            const user = await usersCollection.findOne({ email })
+            await managersCollection.insertOne({
+              email,
+              name: user?.name || '',
+              image: user?.image || '',
+              role: 'manager',
+              assignedAt: new Date().toISOString(),
+            })
+          }
+        } else {
+          await managersCollection.deleteOne({ email })
+        }
+
+        res.send({
+          success: true,
+          modifiedCount: result.modifiedCount,
+        })
+      } catch (err) {
+        res.status(500).send({ message: err.message })
+      }
+    })
 
     // post / create club 
     app.post('/clubs', verifyJWT, async (req, res) => {
@@ -606,16 +602,16 @@ async function run() {
 
 
     // club api    club details 
-
-    app.get('/clubs/:id', async (req, res) => {
+    app.get('/clubs/:id', verifyJWT, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const club = await clubsCollection.findOne(query)
       res.send(club)
     })
 
+    // ==================== Manager Api ==============================
     // get manager clubs
-    app.get('/manager-clubs/:email', async (req, res) => {
+    app.get('/manager-clubs/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.params.email
 
       const result = await clubsCollection.find({
@@ -625,13 +621,13 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/manager-members/:email', async (req, res) => {
+    // get members 
+    app.get('/manager-members/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.params.email
       const managerClubs = await clubsCollection
         .find({ "manager.email": email })
         .toArray()
       const clubIds = managerClubs.map(club => club._id.toString())
-      // ওই clubs এর members
       const members = await membersCollection
         .find({ clubId: { $in: clubIds } })
         .toArray()
@@ -641,44 +637,20 @@ async function run() {
 
 
     // ======================================
-
-
     app.get('/admin/clubs', verifyJWT, verifyADMIN, async (req, res) => {
       const clubs = await clubsCollection.find().toArray()
       res.send(clubs)
     })
 
-    // club status update -> approve
-    app.patch('/admin/clubs/approve/:id', verifyJWT, verifyADMIN, async (req, res) => {
-      const id = req.params.id
 
-      const result = await clubsCollection.updateOne(
-        { _id: new ObjectId(id) },
-        {
-          $set: { status: "approved" }
-        }
-      )
-      res.send(result)
-    })
-
-    // club status update ->reject
-    app.patch('/admin/clubs/reject/:id', verifyJWT, verifyADMIN, async (req, res) => {
-      const id = req.params.id
-      const result = await clubCollection.updateOne(
-        { _id: new ObjectId(id) },
-        {
-          $set: { status: "rejected" }
-        }
-      )
-      res.send(result)
-    })
+   
 
 
 
-    // =======================statistics ==============================
+    // ======================= Statistics ==============================
 
     // statistics for admin
-    app.get('/admin-stats', verifyJWT, async (req, res) => {
+    app.get('/admin-stats', verifyJWT, verifyADMIN, async (req, res) => {
 
       const totalUsers = await usersCollection.estimatedDocumentCount()
       const totalClubs = await clubsCollection.estimatedDocumentCount()
@@ -702,7 +674,7 @@ async function run() {
     })
 
     // manager statistics 
-    app.get('/manager-stats/:email', verifyJWT, async (req, res) => {
+    app.get('/manager-stats/:email', verifyJWT, verifyManager, async (req, res) => {
 
       const email = req.params.email
 
@@ -779,9 +751,9 @@ async function run() {
 
 
 
-
+    // ================= check membership or registration ==============
     // check member
-    app.get('/is-member', async (req, res) => {
+    app.get('/is-member', verifyJWT, async (req, res) => {
       const { email, clubId } = req.query
       const member = await membersCollection.findOne({
         memberEmail: email,
@@ -789,9 +761,8 @@ async function run() {
       })
       res.send(!!member)
     })
-
     // check registration
-    app.get('/is-registered', async (req, res) => {
+    app.get('/is-registered', verifyJWT, async (req, res) => {
       const { email, eventId } = req.query
       const reg = await paymentsCollection.findOne({
         memberEmail: email,
@@ -803,9 +774,8 @@ async function run() {
 
 
     // =============================== Count =========================
-
     // count event registrations
-    app.get('/event-registration-count/:eventId', async (req, res) => {
+    app.get('/event-registration-count/:eventId', verifyJWT, async (req, res) => {
       const eventId = req.params.eventId
       const count = await paymentsCollection.countDocuments({
         eventId: eventId,
@@ -813,9 +783,8 @@ async function run() {
       })
       res.send({ count })
     })
-
     // club member join count 
-    app.get('/club-member-count/:clubId', async (req, res) => {
+    app.get('/club-member-count/:clubId', verifyJWT, async (req, res) => {
       const clubId = req.params.clubId
 
       const count = await membersCollection.countDocuments({
@@ -825,8 +794,8 @@ async function run() {
       res.send({ count })
     })
 
-
-    // event and club update ===========
+    // ===================================update=============================
+    //  update Club
     app.put("/club-update/:id", verifyJWT, async (req, res) => {
       try {
         const { id } = req.params
@@ -839,17 +808,10 @@ async function run() {
         if (!club) {
           return res.status(404).send({ message: "Club not found" })
         }
-
-        console.log("USER:", req.user?.email)
-        console.log("MANAGER:", club?.manager?.email)
-
-        // ✅ FIX
         if (club.manager?.email !== req.user?.email) {
           return res.status(403).send({ message: "Forbidden" })
         }
-
         delete updateData.manager
-
         const result = await clubsCollection.updateOne(
           { _id: club._id },
           { $set: updateData }
@@ -867,7 +829,6 @@ async function run() {
         })
       }
     })
-
     // Update event
     app.put("/events-update/:id", verifyJWT, async (req, res) => {
       try {
@@ -882,10 +843,6 @@ async function run() {
           return res.status(404).send({ message: "Event not found" })
         }
 
-        console.log("USER:", req.user?.email)
-        console.log("EVENT MANAGER:", event?.manager?.email)
-
-        // ✅ FIX
         if (event.manager?.email !== req.user?.email) {
           return res.status(403).send({ message: "Forbidden" })
         }
@@ -915,10 +872,6 @@ async function run() {
     console.log(
       'Pinged your deployment. You successfully connected to MongoDB!'
     )
-
-
-
-
 
 
   } finally {
