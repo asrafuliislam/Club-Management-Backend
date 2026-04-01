@@ -18,7 +18,11 @@ const app = express()
 // middleware
 app.use(
   cors({
-    origin: "https://club-management-o1cz.vercel.app",
+    origin: [
+      "https://club-management-o1cz.vercel.app",
+      'http://localhost:5173'
+    ],
+
     credentials: true,
     optionSuccessStatus: 200,
   })
@@ -342,7 +346,7 @@ async function run() {
     })
 
     // get event 
-    app.get('/events', verifyJWT, async (req, res) => {
+    app.get('/events', async (req, res) => {
       const result = await eventsCollection.find().toArray()
       res.send(result)
     })
@@ -537,7 +541,55 @@ async function run() {
       res.send(result)
     })
 
-    // get all users for admin 
+    // ================== approve manager ================
+    app.patch('/approve-manager/:id', async (req, res) => {
+      const id = req.params.id
+
+      const request = await managersCollection.findOne({ _id: new ObjectId(id) })
+
+      // user role update
+      await usersCollection.updateOne(
+        { email: request.email },
+        { $set: { role: 'manager' } }
+      )
+
+      // delete request
+      await managersCollection.deleteOne({ _id: new ObjectId(id) })
+
+      res.send({ success: true })
+    })
+
+    app.patch('/approve-admin/:id', async (req, res) => {
+      const id = req.params.id
+
+      const request = await adminsCollection.findOne({ _id: new ObjectId(id) })
+
+      await usersCollection.updateOne(
+        { email: request.email },
+        { $set: { role: 'admin' } }
+      )
+
+      await adminsCollection.deleteOne({ _id: new ObjectId(id) })
+
+      res.send({ success: true })
+    })
+
+    // ======================== reject manager ====================
+    app.delete('/reject-manager/:id', async (req, res) => {
+      const id = req.params.id
+      await managersCollection.deleteOne({ _id: new ObjectId(id) })
+      res.send({ success: true })
+    })
+
+    app.delete('/reject-admin/:id', async (req, res) => {
+      const id = req.params.id
+      await adminsCollection.deleteOne({ _id: new ObjectId(id) })
+      res.send({ success: true })
+    })
+
+
+
+    // get all users for admin
     // admin routes
     app.get('/users-for-admin', verifyJWT, verifyADMIN, async (req, res) => {
       const adminEmail = req.tokenEmail
@@ -550,7 +602,7 @@ async function run() {
     })
 
 
-    // update user role 
+    // update user role
     app.patch('/update-role', verifyJWT, verifyADMIN, async (req, res) => {
       try {
         const { email, role } = req.body
@@ -586,7 +638,7 @@ async function run() {
       }
     })
 
-    // post / create club 
+    // post / create club
     app.post('/clubs', verifyJWT, async (req, res) => {
       const clubData = req.body
       const result = await clubsCollection.insertOne(clubData)
@@ -594,7 +646,7 @@ async function run() {
     })
 
 
-    // get all clubs api 
+    // get all clubs api
     app.get('/clubs', async (req, res) => {
       const result = await clubsCollection.find({ status: "approved" }).toArray()
       res.send(result)
@@ -602,7 +654,7 @@ async function run() {
 
 
 
-    // club api    club details 
+    // club api    club details
     app.get('/clubs/:id', verifyJWT, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
@@ -622,7 +674,7 @@ async function run() {
       res.send(result)
     })
 
-    // get members 
+    // get members
     app.get('/manager-members/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.tokenEmail
       const managerClubs = await clubsCollection
@@ -698,7 +750,7 @@ async function run() {
       })
     })
 
-    // manager statistics 
+    // manager statistics
     app.get('/manager-stats/:email', verifyJWT, verifyManager, async (req, res) => {
 
       const email = req.tokenEmail
@@ -808,7 +860,7 @@ async function run() {
       })
       res.send({ count })
     })
-    // club member join count 
+    // club member join count
     app.get('/club-member-count/:clubId', verifyJWT, async (req, res) => {
       const clubId = req.params.clubId
 
