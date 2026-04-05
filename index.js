@@ -378,15 +378,13 @@ async function run() {
 
     // POST /events
     // Manager শুধুমাত্র নিজের club এর জন্য event create করতে পারবে
-    app.post('/events', verifyJWT, verifyManager, async (req, res) => {
+    app.post('/events', async (req, res) => {
       const eventData = req.body
 
       const club = await clubsCollection.findOne({ _id: new ObjectId(eventData.clubId) })
       if (!club || club.managerEmail !== req.tokenEmail) {
         return res.status(403).send({ message: 'Not authorized to create event for this club' })
       }
-
-      console.log("token", req.tokenEmail,club.managerEmail )
 
       eventData.createdAt = new Date()
       const result = await eventsCollection.insertOne(eventData)
