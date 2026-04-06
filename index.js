@@ -95,7 +95,7 @@ async function run() {
 
 
     // Create Club Payment Session
-    app.post('/create-club-checkout-session', async (req, res) => {
+    app.post('/api/create-club-checkout-session', async (req, res) => {
       try {
         const paymentInfo = req.body
         const session = await stripe.checkout.sessions.create({
@@ -133,7 +133,7 @@ async function run() {
     })
 
     // event registration payment 
-    app.post('/create-event-checkout-session', async (req, res) => {
+    app.post('/api/create-event-checkout-session', async (req, res) => {
       const paymentInfo = req.body
       const session = await stripe.checkout.sessions.create({
         line_items: [
@@ -171,7 +171,7 @@ async function run() {
 
     // ====================== CLUB PAYMENT ======================
 
-    app.post('/club-payment-success', async (req, res) => {
+    app.post('/api/club-payment-success', async (req, res) => {
       try {
         const { sessionId } = req.body
         if (!sessionId) return res.status(400).send({ message: "Session ID is required" })
@@ -244,7 +244,7 @@ async function run() {
     })
 
     // ====================== EVENT PAYMENT ======================
-    app.post('/event-payment-success', async (req, res) => {
+    app.post('/api/event-payment-success', async (req, res) => {
       try {
         const { sessionId } = req.body
         if (!sessionId) return res.status(400).send({ message: "Session ID is required" })
@@ -315,7 +315,7 @@ async function run() {
       }
     })
 
-    app.get('/payments', verifyJWT, async (req, res) => {
+    app.get('/api/payments', verifyJWT, async (req, res) => {
       const type = req.query.type
       const query = { type }
       const result = await paymentsCollection
@@ -329,7 +329,7 @@ async function run() {
 
     // ========================
     // event  api  get event for manager
-    app.get('/events/manager', verifyJWT, async (req, res) => {
+    app.get('/api/events/manager', verifyJWT, async (req, res) => {
 
       const email = req.tokenEmail
 
@@ -346,12 +346,12 @@ async function run() {
     })
 
     // get event 
-    app.get('/events', async (req, res) => {
+    app.get('/api/events', async (req, res) => {
       const result = await eventsCollection.find().toArray()
       res.send(result)
     })
 
-    app.get('/club-events', verifyJWT, async (req, res) => {
+    app.get('/api/club-events', verifyJWT, async (req, res) => {
       const { clubId } = req.query
 
       const query = clubId ? { clubId } : {}
@@ -361,7 +361,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/club-members/:clubId', verifyJWT, async (req, res) => {
+    app.get('/api/club-members/:clubId', verifyJWT, async (req, res) => {
       try {
         const { clubId } = req.params
 
@@ -378,7 +378,7 @@ async function run() {
 
     // POST /events
     // Manager শুধুমাত্র নিজের club এর জন্য event create করতে পারবে
-    app.post('/events',verifyJWT,verifyManager,  async (req, res) => {
+    app.post('/api/events',verifyJWT,verifyManager,  async (req, res) => {
       const eventData = req.body
 
       const club = await clubsCollection.findOne({ _id: new ObjectId(eventData.clubId) })
@@ -392,7 +392,7 @@ async function run() {
 
     })
 
-    app.get('/events/:id', verifyJWT, async (req, res) => {
+    app.get('/api/events/:id', verifyJWT, async (req, res) => {
       const eventId = req.params.id
       const event = await eventsCollection.findOne({ _id: new ObjectId(eventId) })
       if (!event) return res.status(404).send({ message: 'Event not found' })
@@ -401,7 +401,7 @@ async function run() {
     })
 
 
-    app.get('/manager-events/:email', verifyJWT, verifyManager, async (req, res) => {
+    app.get('/api/manager-events/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.tokenEmail
       const query = {
         'manager.email': email
@@ -413,7 +413,7 @@ async function run() {
       res.send(events)
     })
 
-    app.get('/manager-event-registrations/:email', verifyJWT, verifyManager, async (req, res) => {
+    app.get('/api/manager-event-registrations/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.tokenEmail
       const events = await eventsCollection
         .find({ "manager.email": email })
@@ -480,7 +480,7 @@ async function run() {
 
 
     // save or  update user data
-    app.post('/users', async (req, res) => {
+    app.post('/api/users', async (req, res) => {
       const userdata = req.body
 
       userdata.created_At = new Date().toISOString()
@@ -505,14 +505,14 @@ async function run() {
     })
 
     // user role get
-    app.get('/user/role', verifyJWT, async (req, res) => {
+    app.get('/api/user/role', verifyJWT, async (req, res) => {
       const result = await usersCollection.findOne({ email: req.tokenEmail })
       res.send({ role: result?.role })
     })
 
     // save  became-manager request
     // user routes
-    app.post('/became-manager', verifyJWT, async (req, res) => {
+    app.post('/api/became-manager', verifyJWT, async (req, res) => {
       const email = req.tokenEmail
       const alreadyExists = await managersCollection.findOne({ email })
       if (alreadyExists) return res.status(409).send({
@@ -523,7 +523,7 @@ async function run() {
       res.send(result)
     })
 
-    app.post('/became-admin', verifyJWT, async (req, res) => {
+    app.post('/api/became-admin', verifyJWT, async (req, res) => {
       const email = req.tokenEmail
       const result = await adminsCollection.insertOne({ email })
       res.send(result)
@@ -531,18 +531,18 @@ async function run() {
 
     // get all request for manager
     // admin routes
-    app.get('/manager-requests', verifyJWT, verifyADMIN, async (req, res) => {
+    app.get('/api/manager-requests', verifyJWT, verifyADMIN, async (req, res) => {
       const result = await managersCollection.find().toArray()
       res.send(result)
     })
 
-    app.get('/admin-requests', verifyJWT, verifyADMIN, async (req, res) => {
+    app.get('/api/admin-requests', verifyJWT, verifyADMIN, async (req, res) => {
       const result = await adminsCollection.find().toArray()
       res.send(result)
     })
 
     // ================== approve manager ================
-    app.patch('/approve-manager/:id', async (req, res) => {
+    app.patch('/api/approve-manager/:id', async (req, res) => {
       const id = req.params.id
 
       const request = await managersCollection.findOne({ _id: new ObjectId(id) })
@@ -559,7 +559,7 @@ async function run() {
       res.send({ success: true })
     })
 
-    app.patch('/approve-admin/:id', async (req, res) => {
+    app.patch('/api/approve-admin/:id', async (req, res) => {
       const id = req.params.id
 
       const request = await adminsCollection.findOne({ _id: new ObjectId(id) })
@@ -575,13 +575,13 @@ async function run() {
     })
 
     // ======================== reject manager ====================
-    app.delete('/reject-manager/:id', async (req, res) => {
+    app.delete('/api/reject-manager/:id', async (req, res) => {
       const id = req.params.id
       await managersCollection.deleteOne({ _id: new ObjectId(id) })
       res.send({ success: true })
     })
 
-    app.delete('/reject-admin/:id', async (req, res) => {
+    app.delete('/api/reject-admin/:id', async (req, res) => {
       const id = req.params.id
       await adminsCollection.deleteOne({ _id: new ObjectId(id) })
       res.send({ success: true })
@@ -591,7 +591,7 @@ async function run() {
 
     // get all users for admin
     // admin routes
-    app.get('/users-for-admin', verifyJWT, verifyADMIN, async (req, res) => {
+    app.get('/api/users-for-admin', verifyJWT, verifyADMIN, async (req, res) => {
       const adminEmail = req.tokenEmail
       const result = await usersCollection.find({
         email: {
@@ -603,7 +603,7 @@ async function run() {
 
 
     // update user role
-    app.patch('/update-role', verifyJWT, verifyADMIN, async (req, res) => {
+    app.patch('/api/update-role', verifyJWT, verifyADMIN, async (req, res) => {
       try {
         const { email, role } = req.body
 
@@ -639,7 +639,7 @@ async function run() {
     })
 
     // post / create club
-    app.post('/clubs', verifyJWT, async (req, res) => {
+    app.post('/api/clubs', verifyJWT, async (req, res) => {
       const clubData = req.body
       const result = await clubsCollection.insertOne(clubData)
       res.send(result)
@@ -647,7 +647,7 @@ async function run() {
 
 
     // get all clubs api
-    app.get('/clubs', async (req, res) => {
+    app.get('/api/clubs', async (req, res) => {
       const result = await clubsCollection.find({ status: "approved" }).toArray()
       res.send(result)
     })
@@ -655,7 +655,7 @@ async function run() {
 
 
     // club api    club details
-    app.get('/clubs/:id', verifyJWT, async (req, res) => {
+    app.get('/api/clubs/:id', verifyJWT, async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id) }
       const club = await clubsCollection.findOne(query)
@@ -664,7 +664,7 @@ async function run() {
 
     // ==================== Manager Api ==============================
     // get manager clubs
-    app.get('/manager-clubs/:email', verifyJWT, verifyManager, async (req, res) => {
+    app.get('/api/manager-clubs/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.tokenEmail
 
       const result = await clubsCollection.find({
@@ -675,7 +675,7 @@ async function run() {
     })
 
     // get members
-    app.get('/manager-members/:email', verifyJWT, verifyManager, async (req, res) => {
+    app.get('/api/manager-members/:email', verifyJWT, verifyManager, async (req, res) => {
       const email = req.tokenEmail
       const managerClubs = await clubsCollection
         .find({ "manager.email": email })
@@ -690,7 +690,7 @@ async function run() {
 
 
     // ======================================
-    app.get('/admin/clubs', verifyJWT, async (req, res) => {
+    app.get('/api/admin/clubs', verifyJWT, async (req, res) => {
       const clubs = await clubsCollection.find().toArray()
       res.send(clubs)
     })
@@ -698,7 +698,7 @@ async function run() {
 
     // ============================= Status =============
     // club status update -> approve
-    app.patch('/admin/clubs/approve/:id', verifyJWT, verifyADMIN, async (req, res) => {
+    app.patch('/api/admin/clubs/approve/:id', verifyJWT, verifyADMIN, async (req, res) => {
       const id = req.params.id
 
       const result = await clubsCollection.updateOne(
@@ -711,7 +711,7 @@ async function run() {
     })
 
     // club status update ->reject
-    app.patch('/admin/clubs/reject/:id', verifyJWT, verifyADMIN, async (req, res) => {
+    app.patch('/api/admin/clubs/reject/:id', verifyJWT, verifyADMIN, async (req, res) => {
       const id = req.params.id
       const result = await clubsCollection.updateOne(
         { _id: new ObjectId(id) },
@@ -727,7 +727,7 @@ async function run() {
     // ======================= Statistics ==============================
 
     // statistics for admin
-    app.get('/admin-stats', verifyJWT, verifyADMIN, async (req, res) => {
+    app.get('/api/admin-stats', verifyJWT, verifyADMIN, async (req, res) => {
 
       const totalUsers = await usersCollection.estimatedDocumentCount()
       const totalClubs = await clubsCollection.estimatedDocumentCount()
@@ -751,7 +751,7 @@ async function run() {
     })
 
     // manager statistics
-    app.get('/manager-stats/:email', verifyJWT, verifyManager, async (req, res) => {
+    app.get('/api/manager-stats/:email', verifyJWT, verifyManager, async (req, res) => {
 
       const email = req.tokenEmail
 
@@ -798,7 +798,7 @@ async function run() {
     })
 
     // Member statistics
-    app.get('/member-stats/:email', verifyJWT, async (req, res) => {
+    app.get('/api/member-stats/:email', verifyJWT, async (req, res) => {
 
       const email = req.tokenEmail
 
@@ -830,7 +830,7 @@ async function run() {
 
     // ================= check membership or registration ==============
     // check member
-    app.get('/is-member', verifyJWT, async (req, res) => {
+    app.get('/api/is-member', verifyJWT, async (req, res) => {
       const { email, clubId } = req.query
       const member = await membersCollection.findOne({
         memberEmail: email,
@@ -839,7 +839,7 @@ async function run() {
       res.send(!!member)
     })
     // check registration
-    app.get('/is-registered', verifyJWT, async (req, res) => {
+    app.get('/api/is-registered', verifyJWT, async (req, res) => {
       const { email, eventId } = req.query
       const reg = await paymentsCollection.findOne({
         memberEmail: email,
@@ -852,7 +852,7 @@ async function run() {
 
     // =============================== Count =========================
     // count event registrations
-    app.get('/event-registration-count/:eventId', verifyJWT, async (req, res) => {
+    app.get('/api/event-registration-count/:eventId', verifyJWT, async (req, res) => {
       const eventId = req.params.eventId
       const count = await paymentsCollection.countDocuments({
         eventId: eventId,
@@ -861,7 +861,7 @@ async function run() {
       res.send({ count })
     })
     // club member join count
-    app.get('/club-member-count/:clubId', verifyJWT, async (req, res) => {
+    app.get('/api/club-member-count/:clubId', verifyJWT, async (req, res) => {
       const clubId = req.params.clubId
 
       const count = await membersCollection.countDocuments({
@@ -873,7 +873,7 @@ async function run() {
 
     // ===================================update=============================
     //  update Club
-    app.put("/club-update/:id", verifyJWT, async (req, res) => {
+    app.put("/api/club-update/:id", verifyJWT, async (req, res) => {
       try {
         const { id } = req.params
         const updateData = req.body
@@ -907,7 +907,7 @@ async function run() {
       }
     })
     // Update event
-    app.put("/events-update/:id", verifyJWT, async (req, res) => {
+    app.put("/api/events-update/:id", verifyJWT, async (req, res) => {
       try {
         const { id } = req.params
         const Data = req.body
@@ -957,7 +957,7 @@ async function run() {
 }
 run().catch(console.dir)
 
-app.get('/', (req, res) => {
+app.get('/api/', (req, res) => {
   res.send('Hello from Server..')
 })
 
