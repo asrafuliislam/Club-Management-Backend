@@ -378,7 +378,7 @@ async function run() {
 
     // POST /events
     // Manager শুধুমাত্র নিজের club এর জন্য event create করতে পারবে
-    app.post('/events', async (req, res) => {
+    app.post('/events',verifyJWT,verifyManager,  async (req, res) => {
       const eventData = req.body
 
       const club = await clubsCollection.findOne({ _id: new ObjectId(eventData.clubId) })
