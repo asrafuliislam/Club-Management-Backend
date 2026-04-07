@@ -18,11 +18,18 @@ const app = express()
 // middleware
 app.use(
   cors({
-    origin: [
-      "https://club-management-o1cz.vercel.app",
-      'http://localhost:5173'
-    ],
-
+    origin: function (origin, callback) {
+      const allowedOrigins = [
+        'https://club-management-o1cz.vercel.app',
+        'http://localhost:5173',
+      ]
+      // Vercel preview deployments allow করুন
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true)
+      } else {
+        callback(new Error('CORS not allowed'))
+      }
+    },
     credentials: true,
     optionSuccessStatus: 200,
   })
@@ -378,7 +385,7 @@ async function run() {
 
     // POST /events
     // Manager শুধুমাত্র নিজের club এর জন্য event create করতে পারবে
-    app.post('/api/events',verifyJWT,verifyManager,  async (req, res) => {
+    app.post('/api/events', verifyJWT, verifyManager, async (req, res) => {
       const eventData = req.body
 
       const club = await clubsCollection.findOne({ _id: new ObjectId(eventData.clubId) })
