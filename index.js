@@ -389,7 +389,7 @@ async function run() {
       const eventData = req.body
 
       const club = await clubsCollection.findOne({ _id: new ObjectId(eventData.clubId) })
-      if (!club || club.managerEmail !== req.tokenEmail) {
+      if (!club || club.manager?.email !== req.tokenEmail) {
         return res.status(403).send({ message: 'Not authorized to create event for this club' })
       }
 
@@ -437,7 +437,7 @@ async function run() {
 
 
     // member dashboard api 
-    app.get("/member-clubs/:email", verifyJWT, async (req, res) => {
+    app.get("/api/member-clubs/:email", verifyJWT, async (req, res) => {
       const email = req.tokenEmail
       const clubs = await membersCollection
         .find({ memberEmail: email })
@@ -449,7 +449,7 @@ async function run() {
       res.send(clubDetails)
     })
 
-    app.get("/member-events/:email", verifyJWT, async (req, res) => {
+    app.get("/api/member-events/:email", verifyJWT, async (req, res) => {
       const email = req.tokenEmail
       const type = req.query.type
 
@@ -475,7 +475,7 @@ async function run() {
       res.send(events)
     })
 
-    app.get("/member-payments/:email", verifyJWT, async (req, res) => {
+    app.get("/api/member-payments/:email", verifyJWT, async (req, res) => {
       const email = req.tokenEmail
       const payments = await paymentsCollection
         .find({ memberEmail: email, type: "registerPayment" })
@@ -483,7 +483,6 @@ async function run() {
         .toArray()
       res.send(payments)
     })
-
 
 
     // save or  update user data
@@ -971,3 +970,5 @@ app.get('/api/', (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`)
 })
+
+module.exports = app
