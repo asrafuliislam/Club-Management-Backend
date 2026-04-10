@@ -31,7 +31,7 @@ app.use(
       }
     },
     credentials: true,
-    optionSuccessStatus: 200,
+    optionsSuccessStatus: 200,
   })
 )
 
@@ -67,6 +67,7 @@ const client = new MongoClient(process.env.MONGODB_URI, {
 async function run() {
   try {
 
+    await client.connect()
 
     const db = client.db('ClubManageDB')
     const usersCollection = db.collection('users')
