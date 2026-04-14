@@ -20,7 +20,6 @@ app.use(
   cors({
     origin: function (origin, callback) {
       const allowedOrigins = [
-        'https://club-management-o1cz.vercel.app',
         'http://localhost:5173',
       ]
       // Vercel preview deployments allow করুন
@@ -490,12 +489,17 @@ async function run() {
     app.post('/api/users', async (req, res) => {
       const userdata = req.body
 
+      if (!userdata?.email) {
+        return res.status(400).send({ message: 'Email is required' })
+      }
+
       userdata.created_At = new Date().toISOString()
       userdata.last_Login = new Date().toISOString()
       userdata.role = "member"
       const query = {
         email: userdata.email
       }
+
 
       const AlreadyExit = await usersCollection.findOne(query)
       if (AlreadyExit) {
